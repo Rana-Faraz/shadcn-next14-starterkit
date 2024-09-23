@@ -1,17 +1,23 @@
-import { Input } from "@/components/ui/input";
-import React from "react";
+import { Input } from '@/components/ui/input';
+import React from 'react';
 
 function InputsDemo() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <label htmlFor="name" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="name"
+          className="text-sm font-medium text-gray-700 dark:text-white"
+        >
           Name
         </label>
         <Input id="name" placeholder="John Doe" className="max-w-[300px]" />
       </div>
       <div>
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+        <label
+          htmlFor="email"
+          className="text-sm font-medium text-gray-700 dark:text-white"
+        >
           Email
         </label>
         <Input

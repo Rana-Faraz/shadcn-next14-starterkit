@@ -28,7 +28,7 @@ function DemoPage() {
         <span className="text-sm text-muted-foreground">
           This is the default varients of the button provided to make your own
           ui library customize the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             components/ui/button.tsx
           </span>{' '}
           file accordingly.
@@ -40,7 +40,7 @@ function DemoPage() {
         <span className="text-sm text-muted-foreground">
           This is the default Input field provided to make your own ui library
           customize the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             components/ui/input.tsx
           </span>{' '}
           file accordingly.
@@ -52,7 +52,7 @@ function DemoPage() {
         <span className="text-sm text-muted-foreground">
           This is the default Select field provided to make your own ui library
           customize the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             components/ui/select.tsx
           </span>{' '}
           file accordingly.
@@ -64,15 +64,15 @@ function DemoPage() {
         <span className="text-sm leading-6 text-muted-foreground">
           This is the default Table provided to make your own ui library
           customize the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             components/ui/table.tsx
           </span>{' '}
           file accordingly. You can use the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             {'<Table />'}
           </span>{' '}
           component to build more complex data tables. Combine it with{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             <a
               href="https://tanstack.com/table/v8"
               target="_blank"
@@ -82,7 +82,7 @@ function DemoPage() {
             </a>
           </span>{' '}
           to create tables with sorting, filtering and pagination. See the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             <a
               href="https://ui.shadcn.com/docs/components/data-table"
               target="_blank"
@@ -100,7 +100,7 @@ function DemoPage() {
         <span className="text-sm text-muted-foreground">
           If any forms are required, you can use the default Input field in
           combination with{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             <a
               href="https://react-hook-form.com/"
               target="_blank"
@@ -110,14 +110,14 @@ function DemoPage() {
             </a>
           </span>{' '}
           and{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             <a href="https://zod.dev/" target="_blank" className="underline">
               zod
             </a>
           </span>{' '}
           to validate the form. You can also use the default Select field to
           create dropdowns. For more information, see the{' '}
-          <span className="rounded-sm bg-slate-100 px-2 py-1">
+          <span className="rounded-sm bg-slate-100 px-2 py-1 dark:text-black">
             <a
               href="https://ui.shadcn.com/docs/components/form"
               target="_blank"
