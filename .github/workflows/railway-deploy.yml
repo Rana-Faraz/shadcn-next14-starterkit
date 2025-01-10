@@ -10,6 +10,10 @@ on:
       - main
       - develop
 
+permissions:
+  pull-requests: write # For reading and writing PR comments
+  contents: read # For checking out code
+
 jobs:
   deploy-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -32,6 +36,7 @@ jobs:
           RAILWAY_TOKEN=${{ secrets.RAILWAY_PRODUCTION_TOKEN }} railway up
 
   deploy-preview:
+    permissions: write-all
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
@@ -47,26 +52,101 @@ jobs:
           export PATH="$HOME/.railway/bin:$PATH"
 
       - name: Deploy Preview
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # Create a unique environment name based on PR number
-          PR_ENV="pr-${{ github.event.number }}"
+          # Link to the temp environment with the selected service
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment temp --team personal --service "preview-1"
 
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment "$PR_ENV" --team personal --service ${{ secrets.RAILWAY_SERVICE_NAME }}
-          RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up
-
-          # Get the deployment URL and post it as a comment
-          DEPLOY_URL=$(RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway show --environment "$PR_ENV" --json | jq -r '.url')
-
-          if [ ! -z "$DEPLOY_URL" ]; then
-            echo "::set-output name=deploy_url::$DEPLOY_URL"
-            
-            # Post comment with deployment URL
-            curl -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" \
-              -d "{\"body\":\"🚀 Preview deployment is ready!\n\nURL: $DEPLOY_URL\"}"
+          # First check if there's already a service being used for this PR
+          COMMENTS=$(gh api /repos/${{ github.repository }}/issues/${{ github.event.number }}/comments)
+          if [ "$COMMENTS" != "[]" ] && [ ! -z "$COMMENTS" ]; then
+            EXISTING_SERVICE=$(echo "$COMMENTS" | jq -r '
+              map(select(.body | contains("Service: `"))) | 
+              last | 
+              if . == null then "" 
+              else .body | capture("Service: `(?<service>.*)`").service 
+              end
+            ')
+          else
+            EXISTING_SERVICE=""
           fi
+
+          if [ ! -z "$EXISTING_SERVICE" ]; then
+            echo "Found existing service for this PR: $EXISTING_SERVICE"
+            PR_SERVICE="$EXISTING_SERVICE"
+          else
+            # Get project status and find an available service
+            PROJECT_STATUS=$(RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway status --json)
+
+            # Get temp environment ID
+            TEMP_ENV_ID=$(echo "$PROJECT_STATUS" | jq -r '.environments.edges[] | select(.node.name == "temp") | .node.id')
+            echo "Temp environment ID: $TEMP_ENV_ID"
+
+            # Find first preview service without an active deployment in temp environment
+            PR_SERVICE=$(echo "$PROJECT_STATUS" | jq -r --arg env_id "$TEMP_ENV_ID" '
+              .services.edges[] | 
+              select(.node.name | startswith("preview-")) |
+              select(.node.serviceInstances.edges[] | 
+                select(.node.environmentId == $env_id and .node.latestDeployment == null)
+              ) |
+              .node.name' | head -n1)
+
+            # If no available service found, use preview-1
+            if [ -z "$PR_SERVICE" ]; then
+              echo "No available service found, using preview-1"
+              PR_SERVICE="preview-1"
+            fi
+          fi
+
+          echo "Using service: $PR_SERVICE"
+          echo "service_name=$PR_SERVICE" >> $GITHUB_ENV
+
+
+          # Check if service exists, create if it doesn't
+          if ! RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway service "$PR_SERVICE" &>/dev/null; then
+            echo "Creating new service: $PR_SERVICE"
+            RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway add --service "$PR_SERVICE"
+          else
+            echo "Service $PR_SERVICE already exists, using existing service"
+          fi
+
+          # Deploy to the temp environment
+          RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway up --service "$PR_SERVICE"
+
+          # Wait a bit for the service to be ready
+          sleep 10
+
+          # Try to get the domain URL, handling both new and existing domains
+          DOMAIN_OUTPUT=$(RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway domain --json --service "$PR_SERVICE" 2>&1)
+
+          # First try to parse as JSON, if that fails, try to extract from the text output
+          if echo "$DOMAIN_OUTPUT" | jq -e . >/dev/null 2>&1; then
+            # JSON is valid, extract domain from it
+            DEPLOY_URL=$(echo "$DOMAIN_OUTPUT" | jq -r '.domain')
+          else
+            # Not JSON, extract URL from text output
+            DEPLOY_URL=$(echo "$DOMAIN_OUTPUT" | grep -o 'https://[^ ]*' | head -n1)
+          fi
+
+          if [ ! -z "$DEPLOY_URL" ] && [ "$DEPLOY_URL" != "null" ]; then
+            echo "Preview URL: $DEPLOY_URL"
+            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_ENV
+          else
+            echo "Failed to get deployment URL"
+            exit 1
+          fi
+
+      - name: Comment PR
+        if: env.deploy_url != ''
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            🚀 Preview deployment is ready!
+
+            Service: `${{ env.service_name }}`
+            URL: ${{ env.deploy_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   cleanup-preview:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -77,7 +157,20 @@ jobs:
           curl -fsSL https://railway.app/install.sh | sh
           export PATH="$HOME/.railway/bin:$PATH"
 
-      - name: Remove Preview Environment
+      - name: Remove Preview Deployment
         run: |
-          PR_ENV="pr-${{ github.event.number }}"
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway environment delete "$PR_ENV" --yes
+          # Get the service name from the PR comment
+          SERVICE_NAME=$(gh api /repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
+            --jq 'map(select(.body | contains("Service: `"))) | last | .body | capture("Service: `(?<service>.*)`").service')
+
+          if [ ! -z "$SERVICE_NAME" ]; then
+            echo "Found service name: $SERVICE_NAME"
+            # Link to the temp environment with the selected service
+            RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment temp --team personal --service "$SERVICE_NAME"
+            RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway down --service "$SERVICE_NAME" --yes
+          else
+            echo "Could not find service name in PR comments"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
