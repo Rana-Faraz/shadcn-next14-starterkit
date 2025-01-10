@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ModeToggle } from '@/components/theme-toggle';
+import SWRProvider from '@/providers/swr-provider';
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -36,10 +37,12 @@ export default function RootLayout({
           enableSystem
           // disableTransitionOnChange
         >
-          <div className="sticky top-0 flex justify-end p-4">
-            <ModeToggle />
-          </div>
-          {children}
+          <SWRProvider>
+            <div className="sticky top-0 flex justify-end p-4">
+              <ModeToggle />
+            </div>
+            {children}
+          </SWRProvider>
         </ThemeProvider>
       </body>
     </html>
