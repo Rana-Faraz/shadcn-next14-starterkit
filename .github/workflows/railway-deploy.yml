@@ -68,11 +68,20 @@ jobs:
           # Wait a bit for the service to be ready
           sleep 10
 
-          # Generate domain for the service and get the URL
-          DEPLOY_URL=$(RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway domain --json --service "$PR_SERVICE" | jq -r '.domain')
+          # Try to get the domain URL, handling both new and existing domains
+          DOMAIN_OUTPUT=$(RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway domain --json --service "$PR_SERVICE" 2>&1)
+
+          # First try to parse as JSON, if that fails, try to extract from the text output
+          if echo "$DOMAIN_OUTPUT" | jq -e . >/dev/null 2>&1; then
+            # JSON is valid, extract domain from it
+            DEPLOY_URL=$(echo "$DOMAIN_OUTPUT" | jq -r '.domain')
+          else
+            # Not JSON, extract URL from text output
+            DEPLOY_URL=$(echo "$DOMAIN_OUTPUT" | grep -o 'https://[^ ]*' | head -n1)
+          fi
 
           if [ ! -z "$DEPLOY_URL" ] && [ "$DEPLOY_URL" != "null" ]; then
-            echo "Preview URL: https://$DEPLOY_URL"
+            echo "Preview URL: $DEPLOY_URL"
             
             # Post comment with deployment URL
             curl -X POST \
