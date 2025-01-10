@@ -111,4 +111,4 @@ jobs:
       - name: Remove Preview Service
         run: |
           PR_SERVICE="preview-pr-${{ github.event.number }}"
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway service delete "$PR_SERVICE" --yes
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway down --service "$PR_SERVICE" --yes
