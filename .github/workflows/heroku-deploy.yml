@@ -18,6 +18,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Debug Railway
+      - name: Debug Railway
+        run: |
+          railway --version
+          echo $RAILWAY_API_TOKEN
+          echo $RAILWAY_PROJECT_ID
+
       # Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -31,5 +38,5 @@ jobs:
       # Build and Deploy
       - name: Build and Deploy
         run: |
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link -p ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up --detach
