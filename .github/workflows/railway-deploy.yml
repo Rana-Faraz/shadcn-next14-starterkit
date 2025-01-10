@@ -53,19 +53,21 @@ jobs:
 
       - name: Deploy Preview
         run: |
-          # Try each service in our pool until we find one without deployments
-          for i in {1..5}; do
-            CANDIDATE_SERVICE="preview-$i"
-            
-            echo "Checking service $CANDIDATE_SERVICE for active deployments..."
-            if ! RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway logs -s "$CANDIDATE_SERVICE" 2>&1 | grep -q "Starting Container"; then
-              PR_SERVICE="$CANDIDATE_SERVICE"
-              echo "Found available service: $PR_SERVICE"
-              break
-            fi
-          done
+          # Get project status and find an available service
+          PROJECT_STATUS=$(RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway status --json)
 
-          # If no available service found, use the first one (preview-1)
+          # Find first preview service without an active deployment in temp environment
+          PR_SERVICE=$(echo "$PROJECT_STATUS" | jq -r '
+            .services.edges[] |
+            select(.node.name | startswith("preview-")) |
+            select(.node.serviceInstances.edges[] | 
+              select(.node.environmentId == (.../../environments.edges[] | 
+                select(.node.name == "temp") | .node.id)) |
+              .node.latestDeployment == null
+            ) |
+            .node.name' | head -n1)
+
+          # If no available service found, use preview-1
           if [ -z "$PR_SERVICE" ]; then
             echo "No available service found, using preview-1"
             PR_SERVICE="preview-1"
