@@ -55,10 +55,10 @@ jobs:
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment temp --team personal --service "$PR_SERVICE"
 
           # Deploy to the temp environment
-          RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up
+          RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway up
 
           # Get the deployment URL and post it as a comment
-          DEPLOY_URL=$(RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway show --environment temp --service "$PR_SERVICE" --json | jq -r '.url')
+          DEPLOY_URL=$(RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway show --environment temp --service "$PR_SERVICE" --json | jq -r '.url')
 
           if [ ! -z "$DEPLOY_URL" ]; then
             echo "::set-output name=deploy_url::$DEPLOY_URL"
