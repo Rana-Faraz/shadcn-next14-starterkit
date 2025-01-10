@@ -55,7 +55,7 @@ jobs:
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment temp --team personal --service "$PR_SERVICE"
 
           # Check if service exists, create if it doesn't
-          if ! RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway service list | grep -q "$PR_SERVICE"; then
+          if ! RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway service "$PR_SERVICE" &>/dev/null; then
             echo "Creating new service: $PR_SERVICE"
             RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway add --service "$PR_SERVICE"
           else
