@@ -21,7 +21,6 @@ jobs:
       # Debug Railway
       - name: Debug Railway
         run: |
-          railway --version
           echo $RAILWAY_API_TOKEN
           echo $RAILWAY_PROJECT_ID
 
