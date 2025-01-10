@@ -59,14 +59,16 @@ jobs:
           # Get project status and find an available service
           PROJECT_STATUS=$(RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway status --json)
 
+          # Get temp environment ID
+          TEMP_ENV_ID=$(echo "$PROJECT_STATUS" | jq -r '.environments.edges[] | select(.node.name == "temp") | .node.id')
+          echo "Temp environment ID: $TEMP_ENV_ID"
+
           # Find first preview service without an active deployment in temp environment
-          PR_SERVICE=$(echo "$PROJECT_STATUS" | jq -r '
-            .services.edges[] |
+          PR_SERVICE=$(echo "$PROJECT_STATUS" | jq -r --arg env_id "$TEMP_ENV_ID" '
+            .services.edges[] | 
             select(.node.name | startswith("preview-")) |
             select(.node.serviceInstances.edges[] | 
-              select(.node.environmentId == (.../../environments.edges[] | 
-                select(.node.name == "temp") | .node.id)) |
-              .node.latestDeployment == null
+              select(.node.environmentId == $env_id and .node.latestDeployment == null)
             ) |
             .node.name' | head -n1)
 
@@ -78,8 +80,6 @@ jobs:
 
           echo "Using service: $PR_SERVICE"
           echo "service_name=$PR_SERVICE" >> $GITHUB_ENV
-
-
 
           # Check if service exists, create if it doesn't
           if ! RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway service "$PR_SERVICE" &>/dev/null; then
