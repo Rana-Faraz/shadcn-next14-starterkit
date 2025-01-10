@@ -52,6 +52,8 @@ jobs:
           export PATH="$HOME/.railway/bin:$PATH"
 
       - name: Deploy Preview
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # First check if there's already a service being used for this PR
           EXISTING_SERVICE=$(gh api /repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
