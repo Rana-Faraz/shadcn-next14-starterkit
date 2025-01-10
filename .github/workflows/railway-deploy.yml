@@ -82,17 +82,21 @@ jobs:
 
           if [ ! -z "$DEPLOY_URL" ] && [ "$DEPLOY_URL" != "null" ]; then
             echo "Preview URL: $DEPLOY_URL"
-            
-            # Post comment with deployment URL
-            curl -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" \
-              -d "{\"body\":\"🚀 Preview deployment is ready!\n\nURL: $DEPLOY_URL\"}"
+            echo "deploy_url=$DEPLOY_URL" >> $GITHUB_ENV
           else
             echo "Failed to get deployment URL"
             exit 1
           fi
+
+      - name: Comment PR
+        if: env.deploy_url != ''
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            🚀 Preview deployment is ready!
+
+            URL: ${{ env.deploy_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   cleanup-preview:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
