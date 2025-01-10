@@ -56,8 +56,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # First check if there's already a service being used for this PR
-          EXISTING_SERVICE=$(gh api /repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
-            --jq 'map(select(.body | contains("Service: `"))) | last | .body | capture("Service: `(?<service>.*)`").service')
+          COMMENTS=$(gh api /repos/${{ github.repository }}/issues/${{ github.event.number }}/comments)
+          if [ "$COMMENTS" != "[]" ] && [ ! -z "$COMMENTS" ]; then
+            EXISTING_SERVICE=$(echo "$COMMENTS" | jq -r '
+              map(select(.body | contains("Service: `"))) | 
+              last | 
+              if . == null then "" 
+              else .body | capture("Service: `(?<service>.*)`").service 
+              end
+            ')
+          else
+            EXISTING_SERVICE=""
+          fi
 
           if [ ! -z "$EXISTING_SERVICE" ]; then
             echo "Found existing service for this PR: $EXISTING_SERVICE"
