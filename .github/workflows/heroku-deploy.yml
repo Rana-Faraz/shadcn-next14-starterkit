@@ -32,4 +32,4 @@ jobs:
       - name: Build and Deploy
         run: |
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link -p ${{ secrets.RAILWAY_PROJECT_ID }}
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up -s ${{ secrets.RAILWAY_SERVICE_NAME }} --detach
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up
