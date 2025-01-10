@@ -51,6 +51,10 @@ jobs:
           # Create a unique environment name based on PR number
           PR_ENV="pr-${{ github.event.number }}"
 
+          # Create new environment for the PR if it doesn't exist
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway environment new "$PR_ENV" || true
+
+          # Link to the environment (new or existing)
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment "$PR_ENV" --team personal --service ${{ secrets.RAILWAY_SERVICE_NAME }}
           RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up
 
