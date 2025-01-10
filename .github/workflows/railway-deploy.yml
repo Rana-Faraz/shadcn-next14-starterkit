@@ -48,18 +48,17 @@ jobs:
 
       - name: Deploy Preview
         run: |
-          # Create a unique environment name based on PR number
-          PR_ENV="pr-${{ github.event.number }}"
+          # Create a unique service name for this PR
+          PR_SERVICE="preview-pr-${{ github.event.number }}"
 
-          # Create new environment for the PR if it doesn't exist
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway environment new "$PR_ENV" || true
+          # Link to the temp environment with the PR-specific service
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment temp --team personal --service "$PR_SERVICE"
 
-          # Link to the environment (new or existing)
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment "$PR_ENV" --team personal --service ${{ secrets.RAILWAY_SERVICE_NAME }}
+          # Deploy to the temp environment
           RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up
 
           # Get the deployment URL and post it as a comment
-          DEPLOY_URL=$(RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway show --environment "$PR_ENV" --json | jq -r '.url')
+          DEPLOY_URL=$(RAILWAY_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway show --environment temp --service "$PR_SERVICE" --json | jq -r '.url')
 
           if [ ! -z "$DEPLOY_URL" ]; then
             echo "::set-output name=deploy_url::$DEPLOY_URL"
@@ -81,7 +80,7 @@ jobs:
           curl -fsSL https://railway.app/install.sh | sh
           export PATH="$HOME/.railway/bin:$PATH"
 
-      - name: Remove Preview Environment
+      - name: Remove Preview Service
         run: |
-          PR_ENV="pr-${{ github.event.number }}"
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway environment delete "$PR_ENV" --yes
+          PR_SERVICE="preview-pr-${{ github.event.number }}"
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway service delete "$PR_SERVICE" --yes
