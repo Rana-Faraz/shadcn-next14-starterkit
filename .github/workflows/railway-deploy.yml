@@ -10,6 +10,10 @@ on:
       - main
       - develop
 
+permissions:
+  pull-requests: write # For reading and writing PR comments
+  contents: read # For checking out code
+
 jobs:
   deploy-production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -49,10 +53,28 @@ jobs:
 
       - name: Deploy Preview
         run: |
-          # Create a unique service name for this PR
-          PR_SERVICE="preview-pr-${{ github.event.number }}"
+          # Try each service in our pool until we find one without deployments
+          for i in {1..5}; do
+            CANDIDATE_SERVICE="preview-$i"
+            
+            echo "Checking service $CANDIDATE_SERVICE for active deployments..."
+            if ! RAILWAY_TOKEN=${{ secrets.RAILWAY_TEMP_TOKEN }} railway logs -s "$CANDIDATE_SERVICE" 2>&1 | grep -q "Starting Container"; then
+              PR_SERVICE="$CANDIDATE_SERVICE"
+              echo "Found available service: $PR_SERVICE"
+              break
+            fi
+          done
 
-          # Link to the temp environment with the PR-specific service
+          # If no available service found, use the first one (preview-1)
+          if [ -z "$PR_SERVICE" ]; then
+            echo "No available service found, using preview-1"
+            PR_SERVICE="preview-1"
+          fi
+
+          echo "Using service: $PR_SERVICE"
+          echo "service_name=$PR_SERVICE" >> $GITHUB_ENV
+
+          # Link to the temp environment with the selected service
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment temp --team personal --service "$PR_SERVICE"
 
           # Check if service exists, create if it doesn't
@@ -96,6 +118,7 @@ jobs:
           message: |
             🚀 Preview deployment is ready!
 
+            Service: `${{ env.service_name }}`
             URL: ${{ env.deploy_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -108,7 +131,18 @@ jobs:
           curl -fsSL https://railway.app/install.sh | sh
           export PATH="$HOME/.railway/bin:$PATH"
 
-      - name: Remove Preview Service
+      - name: Remove Preview Deployment
         run: |
-          PR_SERVICE="preview-pr-${{ github.event.number }}"
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway down --service "$PR_SERVICE" --yes
+          # Get the service name from the PR comment
+          SERVICE_NAME=$(gh api /repos/${{ github.repository }}/issues/${{ github.event.number }}/comments \
+            --jq 'map(select(.body | contains("Service: `"))) | last | .body | capture("Service: `(?<service>.*)`").service')
+
+          if [ ! -z "$SERVICE_NAME" ]; then
+            echo "Found service name: $SERVICE_NAME"
+            RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway down --service "$SERVICE_NAME" --yes
+          else
+            echo "Could not find service name in PR comments"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
