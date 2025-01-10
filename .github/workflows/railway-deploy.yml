@@ -32,6 +32,7 @@ jobs:
           RAILWAY_TOKEN=${{ secrets.RAILWAY_PRODUCTION_TOKEN }} railway up
 
   deploy-preview:
+    permissions: write-all
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
