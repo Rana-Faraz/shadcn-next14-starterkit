@@ -31,5 +31,5 @@ jobs:
       # Build and Deploy
       - name: Build and Deploy
         run: |
-          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link -p ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway link --project ${{ secrets.RAILWAY_PROJECT_ID }} --environment production --team personal
           RAILWAY_API_TOKEN=${{ secrets.RAILWAY_API_TOKEN }} railway up
