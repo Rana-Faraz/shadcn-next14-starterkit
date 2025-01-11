@@ -1,4 +1,5 @@
 import { getTodoById } from '@/app/actions/get-todo-by-id';
+import { getTodos } from '@/app/actions/get-todos';
 
 export default async function TodoPage({
   params,
@@ -15,4 +16,12 @@ export default async function TodoPage({
       </p>
     </div>
   );
+}
+
+export async function generateStaticParams() {
+  const todos = await getTodos();
+
+  return todos.map((todo) => ({
+    todo: todo.id.toString(),
+  }));
 }
