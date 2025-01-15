@@ -1,16 +1,13 @@
 import { getTodos } from '@/app/actions/get-todos';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { Suspense } from 'react';
 
 export default async function Home() {
   const data = await getTodos();
 
   return (
     <div className="container grid grid-cols-2 gap-4">
-      <Suspense fallback={<div className="container">Loading...</div>}>
-        <SlowComponent />
-      </Suspense>
+      <SlowComponent />
       {data?.map((todo) => (
         <Link
           key={todo.id}
@@ -44,8 +41,8 @@ export default async function Home() {
 }
 
 const SlowComponent = async () => {
-  // Sleep for 10 seconds
-  await new Promise((resolve) => setTimeout(resolve, 10000));
+  // Sleep for 1 seconds
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return (
     <div className="container">
