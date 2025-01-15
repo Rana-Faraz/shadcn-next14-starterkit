@@ -14,6 +14,11 @@ export default function Home() {
       <Button asChild className="mt-4">
         <Link href="/server/todos">Go to server action demo page</Link>
       </Button>
+      <Button asChild className="mt-4">
+        <Link href="/server/todos/slow">
+          Go to server action slow demo page
+        </Link>
+      </Button>
     </main>
   );
 }
